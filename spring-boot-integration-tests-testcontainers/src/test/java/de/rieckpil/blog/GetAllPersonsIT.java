@@ -5,8 +5,10 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.junit.runner.RunWith;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.PostgreSQLContainer;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,37 +21,32 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.context.junit4.SpringRunner;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 
 // JUnit 4.12 example
-@RunWith(SpringRunner.class)
+@Testcontainers
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
-@ContextConfiguration(initializers = GetAllPersonsIT.Initializer.class)
 public class GetAllPersonsIT {
-
-  @ClassRule
+  @Container
   public static PostgreSQLContainer postgreSQLContainer = new PostgreSQLContainer()
     .withPassword("inmemory")
     .withUsername("inmemory");
 
+  @DynamicPropertySource
+  static void postgresqlProperties(DynamicPropertyRegistry registry) {
+    registry.add("spring.datasource.url", postgreSQLContainer::getJdbcUrl);
+    registry.add("spring.datasource.password", postgreSQLContainer::getPassword);
+    registry.add("spring.datasource.username", postgreSQLContainer::getUsername);
+  }
+
+
   @Autowired
   public TestRestTemplate testRestTemplate;
-
-  public static class Initializer implements ApplicationContextInitializer<ConfigurableApplicationContext> {
-
-    @Override
-    public void initialize(ConfigurableApplicationContext configurableApplicationContext) {
-      TestPropertyValues values = TestPropertyValues.of(
-        "spring.datasource.url=" + postgreSQLContainer.getJdbcUrl(),
-        "spring.datasource.password=" + postgreSQLContainer.getPassword(),
-        "spring.datasource.username=" + postgreSQLContainer.getUsername()
-      );
-      values.applyTo(configurableApplicationContext);
-    }
-  }
 
   @Test
   @Sql("/testdata/FILL_FOUR_PERSONS.sql")
