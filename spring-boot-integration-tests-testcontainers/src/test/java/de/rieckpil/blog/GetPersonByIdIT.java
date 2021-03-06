@@ -6,34 +6,17 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.jdbc.Sql;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 
-// JUnit 4.12 example
+// JUnit 5 example with Spring Boot >= 2.2.6
 @Testcontainers
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
-public class GetPersonByIdIT {
-
-  @Container
-  public static PostgreSQLContainer postgreSQLContainer = new PostgreSQLContainer()
-    .withPassword("inmemory")
-    .withUsername("inmemory");
-
-  @DynamicPropertySource
-  static void postgresqlProperties(DynamicPropertyRegistry registry) {
-    registry.add("spring.datasource.url", postgreSQLContainer::getJdbcUrl);
-    registry.add("spring.datasource.password", postgreSQLContainer::getPassword);
-    registry.add("spring.datasource.username", postgreSQLContainer::getUsername);
-  }
-
+public class GetPersonByIdIT extends AbstractContainerBaseTest {
 
   @Autowired
   private PersonRepository personRepository;
@@ -54,14 +37,15 @@ public class GetPersonByIdIT {
 
   @Test
   @Sql("/testdata/FILL_FOUR_PERSONS.sql")
+  @Sql(value = "/testdata/FILL_FOUR_PERSONS_CLEANUP.sql", executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD)
   public void testExistingPersonById() {
     System.out.println(personRepository.findAll().size());
 
-    ResponseEntity<Person> result = testRestTemplate.getForEntity("/api/persons/1", Person.class);
+    ResponseEntity<Person> result = testRestTemplate.getForEntity("/api/persons/2", Person.class);
 
     assertEquals(HttpStatus.OK, result.getStatusCode());
-    assertEquals("Phil", result.getBody().getName());
-    assertEquals(1l, result.getBody().getId().longValue());
+    assertEquals("Mike", result.getBody().getName());
+    assertEquals(2l, result.getBody().getId().longValue());
   }
 
 }
